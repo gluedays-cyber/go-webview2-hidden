@@ -19,3 +19,17 @@ go run ./cmd/demo
 ```
 
 This will use go-winloader to load an embedded copy of WebView2Loader.dll. If you want, you can also provide a newer version of WebView2Loader.dll in the DLL search path and it should be picked up instead. It can be acquired from the WebView2 SDK (which is permissively licensed.)
+
+---
+
+## Fork Specifications: Hidden Window Initialization Support
+This repository is a fork of jchv/go-webview2 modified to support starting the webview window in a hidden state.
+
+**Why: The Reason for Modification**
+By default, go-webview2 displays the window immediately upon initialization. This causes a noticeable window flickering or layout stuttering effect on Windows startup while the window size, positioning, and high-DPI scaling are being computed and applied.
+
+To prevent this layout stutter, the window initialization logic has been modified to start in a hidden state, allowing developers to set the size and position first, and then programmatically show the window once rendering preparations are complete.
+
+**What: The Changes Made in webview.go**
+Window Style Modification: Modified the Win32 CreateWindowEx parameters or style flags (removing WS_VISIBLE or adjusting startup show commands) inside webview.go to ensure the window is initialized as hidden.
+Control of Initial Visibility: Allows layout calculations and sizing modifications to be executed seamlessly in the background before the window is rendered visible to the end user.
