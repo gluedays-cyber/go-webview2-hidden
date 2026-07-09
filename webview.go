@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strconv"
 	"sync"
+	"syscall"
 	"unsafe"
 
 	"github.com/jchv/go-webview2/internal/w32"
@@ -64,6 +65,7 @@ type WindowOptions struct {
 	Height uint
 	IconId uint
 	Center bool
+	Hidden bool
 }
 
 type WebViewOptions struct {
@@ -317,8 +319,13 @@ func (w *webview) CreateWithOptions(opts WindowOptions) bool {
 		posY = w32.CW_USEDEFAULT
 	}
 
+	exStyle := uintptr(0)
+	if opts.Hidden {
+		exStyle = 0x00080000 // WS_EX_LAYERED
+	}
+
 	w.hwnd, _, _ = w32.User32CreateWindowExW.Call(
-		0,
+		exStyle,
 		uintptr(unsafe.Pointer(className)),
 		uintptr(unsafe.Pointer(windowName)),
 		0xCF0000, // WS_OVERLAPPEDWINDOW
@@ -332,6 +339,12 @@ func (w *webview) CreateWithOptions(opts WindowOptions) bool {
 		0,
 	)
 	setWindowContext(w.hwnd, w)
+
+	if opts.Hidden {
+		user32 := syscall.NewLazyDLL("user32.dll")
+		setLayeredWindowAttributes := user32.NewProc("SetLayeredWindowAttributes")
+		setLayeredWindowAttributes.Call(w.hwnd, 0, 0, 2) // LWA_ALPHA = 2, opacity = 0
+	}
 
 	_, _, _ = w32.User32ShowWindow.Call(w.hwnd, w32.SWShow)
 	_, _, _ = w32.User32UpdateWindow.Call(w.hwnd)
